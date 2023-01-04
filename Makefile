@@ -7,8 +7,8 @@ ifdef cross
 	-pipe -fwrapv -fdata-sections  \
 	-ffunction-sections -finline-functions 
 else
-	LDFLAGS =-L$(LIBRARY_PATH) -lpthread -lcurl -lexpat -lm 
-	CFLAGS =-I$(INCLUDE_PATH) -s -O3 -fPIC  -fsanitize=address -g\
+	LDFLAGS =-lpthread -lcurl -lexpat -lm 
+	CFLAGS =-s -O3 -fPIC  -fsanitize=address -g\
 	-pipe -fwrapv -fdata-sections  \
 	-ffunction-sections -finline-functions 
 endif
