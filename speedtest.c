@@ -20,7 +20,6 @@
 
 #define URL_MAX_SIZE 1024
 #define STR_ARR_MAX_SIZE 30
-#define OUTFILE_CURL "test_download"
 #define FILE_NAME "file"
 
 struct speed_t
@@ -127,7 +126,7 @@ double speedtest_download(char *url)
 
     time = time / (double)TEST_COUNTER;
     printf("Total time: %f seconds\n", time_hand);
-    double final_speed = (double)(TEST_SIZE / 1000000 * (double)TEST_COUNTER / (double)time_hand) * 8;
+    double final_speed = (double)((TEST_SIZE / 1000000) * (double)TEST_COUNTER / (double)time_hand) * 8;
     return final_speed;
 }
 
@@ -217,7 +216,7 @@ double speedtest_upload()
 
     time = time / (double)TEST_COUNTER;
     printf("Total time: %f seconds\n", time_hand);
-    double final_speed = (double)(TEST_SIZE / 1000000 * (double)TEST_COUNTER / (double)time_hand) * 8;
+    double final_speed = (double)((TEST_SIZE / 1000000) * (double)TEST_COUNTER / (double)time_hand) * 8;
 
     if (remove("file") == 0)
     {
