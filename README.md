@@ -2,7 +2,7 @@
 
 ### Compile:
 
-- `CROSS_COMPILE`: Toolchain path if we use cross-compiling.
+- `CROSS_COMPILE`: Toolchain's path if we use cross-compiling.
 
 ```bash
 #cross-compile
