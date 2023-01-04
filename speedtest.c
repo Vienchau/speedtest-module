@@ -9,14 +9,17 @@
 #include "curl/curl.h"
 
 #ifdef CROSS
-#define TEST_COUNTER 5
+#define TEST_COUNTER 10
 #else
 #define TEST_COUNTER 10
 #endif
 
-#define TEST_SIZE 10000000
-#define URL_CURL_DOWNLOAD_SSL "https://speedtest.fpt.vn.prod.hosts.ooklaserver.net:8080/download?size="
-#define URL_CURL_UPLOAD_SSL "https://speedtest.fpt.vn.prod.hosts.ooklaserver.net:8080/speedtest/upload"
+#define TEST_SIZE 20000000
+#define URL_CURL_DOWNLOAD "http://speedtest.fpt.vn.prod.hosts.ooklaserver.net:8080/download?size="
+#define URL_CURL_UPLOAD "http://speedtest.fpt.vn.prod.hosts.ooklaserver.net:8080/speedtest/upload"
+
+// #define URL_CURL_DOWNLOAD_SSL "speedtest.fpt.vn:8080/download?size="
+// #define URL_CURL_UPLOAD_SSL "speedtest.fpt.vn:8080/speedtest/upload"
 
 #define URL_MAX_SIZE 1024
 #define STR_ARR_MAX_SIZE 30
@@ -53,7 +56,7 @@ static void *do_download(void *ptr)
     CURL *curl;
     FILE *fp;
     CURLcode res;
-    char outfilename[7] = FILE_NAME;
+    char outfilename[12] = FILE_NAME;
     curl = curl_easy_init();
     int time;
     if (curl)
@@ -63,18 +66,24 @@ static void *do_download(void *ptr)
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "speedtest");
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
         res = curl_easy_perform(curl);
+        printf("result: %d\n", res);
     }
 
+    curl_off_t transfer_time;
     if (res == CURLE_OK)
     {
         curl_easy_getinfo(curl, CURLINFO_SPEED_DOWNLOAD_T, &(speed->speed));
         curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &(speed->total_time));
-        fprintf(stderr, "Download speed: %0.2f Mb/s during %lu.%06lu seconds\n",
+        curl_easy_getinfo(curl, CURLINFO_STARTTRANSFER_TIME_T, &transfer_time);
+        fprintf(stderr, "Download speed: %0.2f Mb/s during %lu.%06lu seconds",
                 (double)(speed->speed / (double)1024 / (double)1024),
                 (unsigned long)(speed->total_time / 1000000),
                 (unsigned long)(speed->total_time % 1000000));
+        fprintf(stderr, ", Transfer time: %lu.%06lu seconds\n", (unsigned long)(transfer_time / 1000000),
+                (unsigned long)(transfer_time % 1000000));
     }
     curl_easy_cleanup(curl);
     fclose(fp);
@@ -118,15 +127,10 @@ double speedtest_download(char *url)
     }
     gettimeofday(&after_time, NULL);
     double time_hand = (double)(calc_past_time(&before_time, &after_time) / (double)1000);
-    for (i = 0; i < TEST_COUNTER; i++)
-    {
-        sum += (double)(speed_arr[i].speed / (double)1024 / (double)1024);
-        time += (double)(speed_arr[i].total_time / (double)1000000);
-    }
 
     time = time / (double)TEST_COUNTER;
     printf("Total time: %f seconds\n", time_hand);
-    double final_speed = (double)((TEST_SIZE / 1000000) * (double)TEST_COUNTER / (double)time_hand) * 8;
+    double final_speed = (double)(((TEST_SIZE / 1000000) * (double)TEST_COUNTER) / (double)time_hand) * 8;
     return final_speed;
 }
 
@@ -152,14 +156,14 @@ static void *do_upload(void *ptr)
     }
     curl = curl_easy_init();
 
-    curl_easy_setopt(curl, CURLOPT_URL, URL_CURL_UPLOAD_SSL);
+    curl_easy_setopt(curl, CURLOPT_URL, URL_CURL_UPLOAD);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(curl, CURLOPT_READDATA, fd);
     curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "speedtest upload");
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
@@ -208,15 +212,10 @@ double speedtest_upload()
     }
     gettimeofday(&after_time, NULL);
     double time_hand = (double)(calc_past_time(&before_time, &after_time) / (double)1000);
-    for (i = 0; i < TEST_COUNTER; i++)
-    {
-        sum += (double)(speed_arr[i].speed / (double)1024 / (double)1024);
-        time += (double)(speed_arr[i].total_time / (double)1000000);
-    }
 
     time = time / (double)TEST_COUNTER;
     printf("Total time: %f seconds\n", time_hand);
-    double final_speed = (double)((TEST_SIZE / 1000000) * (double)TEST_COUNTER / (double)time_hand) * 8;
+    double final_speed = (double)(((TEST_SIZE / 1000000) * (double)TEST_COUNTER) / (double)time_hand) * 8;
 
     if (remove("file") == 0)
     {
@@ -231,9 +230,12 @@ double speedtest_upload()
 
 int main()
 {
-    char url[URL_MAX_SIZE] = URL_CURL_DOWNLOAD_SSL;
+    char url[URL_MAX_SIZE] = URL_CURL_DOWNLOAD;
     create_url_download(url);
+    printf("URL: %s\n", url);
+    printf("Number of threads: %d\n", TEST_COUNTER);
     double download_speed = speedtest_download(url);
+
     printf("Average download speed : %0.2f Mb/s\n", download_speed);
     double upload_speed = speedtest_upload();
     printf("Average upload speed : %0.2f Mb/s\n", upload_speed);
